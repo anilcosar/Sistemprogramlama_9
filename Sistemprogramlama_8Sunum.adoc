@@ -1,0 +1,647 @@
+= Sistem Programlama → 8.Sunum
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/1.PNG[]
+
+= Eş Zamanlı İşlem Yapma
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/2.PNG[]
+
+= Clock Mimarisi
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/3.PNG[]
+
+== Clock Kaynakları
+
+* Precision Internal Oscillator (PIOSC) +
+* Main Oscillator (MOSC) +
+* Low-Frequency Internal Oscillator (LFIOSC) +
+* Hibernation Module Clock Source 
+
+The internal system clock (SysClk)
+
+== Clock Ayarlaması
+
+Saklayıcıların etkin olduğu işlemler:
+
+* Uyku ve modunda saat kaynak seçimi +
+* PLL veya diğer kaynaklardan türetilmiş sistem saati seçimi +
+* Osilatörlerin ve PLL'nin etkinleştirilmesi / devre dışı bırakılması +
+* Saat bölme +
+* Kristal giriş seçimi 
+
+
+== SYSDIV ve SYSDIV2 alanları
+RCC’de bulunan SYSDIV ve SYSDIV2 alanları
+
+
+Sistem saati ; PLL çıkışı ??? osilatör kaynağı 
+
+BYPASS biti = 0 ??? 1
+ 
+== SYSDIV &SYSDIV2 Sistem Saati Frekansları
+
+SysCtlClockSet()
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/4.PNG[]
+
+== DIV400=1 Sistem Saati Frekansları
+
+SysCtlClockSet()
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/5.PNG[]
+
+== Clock Mimarisi
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/6.PNG[]
+
+= İşlemcinin Hızının Ayarlanması
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/7.PNG[]
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/8.PNG[]
+
+= Hazır Fonksiyonları Kullanmak 
+
+* Proje isminde sağa tıklayarak açılan bölümde “Properties”e tıklayınız. +
+* Açılan menüden C/C++ Build -> Settings menüsünü açınız.  +
+* “Cross ARM C Linker”  altından “Miscellaneous”’u açınız. +
+* “Other objects” kısmındaki ekleme buttonuna tıklayınız.
+
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/9.PNG[]
+
+Açılan pencereden “Workspace” buttonuna tıklayıp, aşağıdaki resimdeki gibi 
+açık olan projeniz altından “...driverlib/gcc/libdriver.a” dosyasını bulup ekleyiniz.
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/10.PNG[]
+
+= İşlemcinin Hızının Ayarlanması
+
+[source]
+----
+#include <stdint.h>
+#include <stdbool.h>
+#include "inc/tm4c123gh6pm.h"
+// stellaris icin: #include "inc/lm4f120h5qr.h"
+ 
+#include "inc/hw_types.h"
+ // SysCtl ile baslayan fonksiyonlarda gerekli
+#include "driverlib/sysctl.h" 
+
+void init_port_F() {
+	volatile unsigned long delay;
+	SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOF;
+	delay = SYSCTL_RCGC2_R;
+	GPIO_PORTF_DIR_R |= 0b01110;
+	GPIO_PORTF_AFSEL_R &= ~0b01110;
+	GPIO_PORTF_DEN_R |= 0b01110;
+}
+----
+=== 80 Mhz için
+[source]
+----
+int main() {
+	volatile unsigned long delay;
+ 
+	// USE_PLL -> 200 / SYSDIV_X
+	// USE_OSC -> 16  / SYSDIV_X
+ 
+	// 200 / 2.5 = 80 Mhz (clock source crystal oscilator)
+	SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | 
+ 	SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+
+	volatile unsigned long clock_period_1 = SysCtlClockGet();
+ 
+	init_port_F();
+ 
+	while (1) {
+    		GPIO_PORTF_DATA_R ^= 0b00100;
+    		for (delay = 0 ; delay < 1000000 ; delay++)
+        	/* */;
+	}
+}
+----
+=== 40 Mhz için
+[source]
+----
+int main() {
+	volatile unsigned long delay;
+ 
+	// USE_PLL -> 200 / SYSDIV_X
+	// USE_OSC -> 16  / SYSDIV_X
+ 
+	// 200 / 5 = 40 Mhz (clock source crystal oscilator)
+	SysCtlClockSet(SYSCTL_SYSDIV_5 | SYSCTL_USE_PLL | 
+SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+
+	volatile unsigned long clock_period_2 = SysCtlClockGet();
+ 
+	init_port_F();
+ 
+	while (1) {
+    		GPIO_PORTF_DATA_R ^= 0b00100;
+    		for (delay = 0 ; delay < 1000000 ; delay++)
+        	/* */;
+	}
+}
+----
+
+=== 20 Mhz için
+
+[source]
+----
+int main() {
+	volatile unsigned long delay;
+ 
+	// USE_PLL -> 200 / SYSDIV_X
+	// USE_OSC -> 16  / SYSDIV_X
+ 
+	// 200 / 10 = 20 Mhz (clock source crystal oscilator)
+	SysCtlClockSet(SYSCTL_SYSDIV_10 | SYSCTL_USE_PLL | 
+SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+
+	volatile unsigned long clock_period_3 = SysCtlClockGet();
+ 
+	init_port_F();
+ 
+	while (1) {
+    		GPIO_PORTF_DATA_R ^= 0b00100;
+    		for (delay = 0 ; delay < 1000000 ; delay++)
+        	/* */;
+	}
+}
+----
+
+=== 16 Mhz için
+
+[source]
+----
+int main() {
+	volatile unsigned long delay;
+ 
+	// USE_PLL -> 200 / SYSDIV_X
+	// USE_OSC -> 16  / SYSDIV_X
+ 
+	// 16 / 1 = 16 Mhz (clock source crystal oscilator)
+	SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | 
+SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+
+	volatile unsigned long clock_period_4 = SysCtlClockGet();
+
+	init_port_F();
+ 
+	while (1) {
+    		GPIO_PORTF_DATA_R ^= 0b00100;
+    		for (delay = 0 ; delay < 1000000 ; delay++)
+        	/* */;
+	}
+}
+----
+
+=== 8 Mhz için
+
+[source]
+----
+int main() {
+	volatile unsigned long delay;
+ 
+	// USE_PLL -> 200 / SYSDIV_X
+	// USE_OSC -> 16  / SYSDIV_X
+ 
+	// 16 / 2 = 8 Mhz (clock source crystal oscilator)
+	SysCtlClockSet(SYSCTL_SYSDIV_2 | SYSCTL_USE_OSC | 
+SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+
+	volatile unsigned long clock_period_5 = SysCtlClockGet();
+
+	init_port_F();
+ 
+	while (1) {
+    		GPIO_PORTF_DATA_R ^= 0b00100;
+    		for (delay = 0 ; delay < 1000000 ; delay++)
+        	/* */;
+	}
+}
+----
+
+= Eş Zamanlı İşlem Yapma
+
+Frekansı 100 olarak ayarlanmış systick kesmesi ile zaman ölçümü yapmak 
+
+* Seven segment kullanarak SANİYEDE  BİR sayma + 
+* Ledi 2.5 SANİYE yak, 2.5 SANİYE söndür
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/2.PNG[]
+
+== Tiva/Stellaris 7 Segment & Buton & Led Bağlantısı
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/11.PNG[]
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/12.PNG[]
+
+== Nested Vector Interrup Controller (NVIC)
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/13.PNG[]
+
+== Interrupt Service Rutine ISR
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/14.PNG[]
+
+[source]
+----
+// The vector table						 alanı içindeki
+IntDefaultHandler, // The SysTick handler	satırı aşağıdaki gibi değiştirilmeli
+systick_handler, // The SysTick handler
+----
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/15.PNG[]
+
+== Kütüphane Tanımlamaları
+
+
+[source]
+----
+#include <stdint.h>
+#include <stdbool.h>
+#include "inc/tm4c123gh6pm.h"
+// stellaris icin: #include "inc/lm4f120h5qr.h"
+
+#include "inc/hw_types.h"
+#include "driverlib/sysctl.h" // SysCtl ile baslayan fonksiyonlarda gerekli
+
+// 1 saniyede SYSTICK Kadar kesme üret
+#define SYSTICK_HZ 100
+----
+
+== Kesme Fonksiyonları
+
+[source]
+----
+static inline void disable_interrupts() { //Kesmeleri pasif yap
+   asm("CPSID I");
+}
+
+static inline void enable_interrupts() { // Kesmeleri aktifleştir
+   asm("CPSIE I");
+}
+
+static inline void wait_for_interrupt() { // Kesme olana kadar bekle
+   asm("WFI");
+}
+----
+
+== Port F İlklendirme
+
+[source]
+----
+void init_port_F() {
+volatile unsigned long tmp;						
+SYSCTL_RCGCGPIO_R |= 0x00000020;			// Port F’nin saatini aktifleştir
+tmp = SYSCTL_RCGCGPIO_R;					// Saatin başlaması için gecikme
+GPIO_PORTF_LOCK_R = 0x4C4F434B;			// Port F GPIO kilidini aç
+GPIO_PORTF_CR_R = 0x1F;					// PF4-0 kilidini aç
+GPIO_PORTF_AMSEL_R = 0x00;				// PF anlog I/O kapat
+GPIO_PORTF_PCTL_R = 0x00000000;			// PF4-0 GPIO olarak ayarla
+GPIO_PORTF_DIR_R = 0x0E;					// PF4,PF0 giriş, PF3-1 çıkış
+GPIO_PORTF_AFSEL_R = 0x00;				// PF7-0 Alternatif fonksiyonları kapat
+GPIO_PORTF_PUR_R = 0x11;					// PF0 ve PF4 üzerindeki pull-up direncini 
+         // aktifleştir
+GPIO_PORTF_DEN_R = 0x1F;					// PF4-0 digital I/O aktifleştir
+}
+----
+== Port B İlklendirme
+
+[source]
+----
+void init_port_B() {
+volatile unsigned long delay;
+SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOB;
+delay = SYSCTL_RCGC2_R;
+GPIO_PORTB_DIR_R |= 0xFF;
+GPIO_PORTB_AFSEL_R &= ~0xFF;
+GPIO_PORTB_DEN_R |= 0xFF;
+}
+----
+== Seven Segment Tablosu
+
+[source]
+----
+uint8_t kodlar[] = {
+	0b00111111,
+	0b00000110,
+	0b01011011,
+	0b01001111,
+	0b01100110,
+	0b01101101,
+	0b01111101,
+	0b00000111,
+	0b01111111,
+	0b01101111
+};
+----
+== Kesme İlklendirme
+
+[source]
+----
+/** SysTick_Init() fonksiyonu systick kesmesini aktifleştiriyor. Kaç saniyede bir kesme üretileceğini verilen period parametresine göre ayarlanıyor. */
+void SysTick_Init(unsigned long period){
+NVIC_ST_CTRL_R = 0;     		// SysTick'i kapatmak için ENABLE bitini temizlenir
+NVIC_ST_RELOAD_R = period-1; 	// RELOAD saklayıcısı ayarlanır
+NVIC_ST_CURRENT_R = 0;  		// Sayacı silmek için NVIC_ST_CURRENT_R'ye 
+// herhangi bir değer yazılır
+NVIC_SYS_PRI3_R = (NVIC_SYS_PRI3_R & 0x00FFFFFF)|0x40000000;  
+// NVIC_SYS_PRI3_R kaydında TICK alanını kullanarak SysTick kesmelerinin 
+// önceliğini oluşturulur
+	NVIC_ST_CTRL_R = 0x07; 
+// NVIC_ST_CTRL_R kontrol saklayıcısına istenen modu yazılır
+}
+----
+== Kesmede Çalışacak Fonksiyon
+
+[source]
+----
+// baslangictan itibaren olusan systick kesmesi sayisi
+uint32_t systick_count = 0;
+
+
+// 7-segmentte gosterilen sayi
+volatile int sayi = 0;
+
+volatile int flag_sayi_arttir = 0;
+volatile int flag_ledi_ters_cevir = 0;
+
+void systick_handler() { // systick kesmesi oldugunda bu fonksiyon calisacak
+	systick_count++; // kac tane systick kesmesi oldugunu say
+	
+// Saniyede bir sayiyi arttirma flagini 1 yap
+    	// saydigimiz systick sayisi 100'e tam bolunuyorsa 1 saniye gecmistir
+    	if ((systick_count % (SYSTICK_HZ * 1)) == 0)
+   		flag_sayi_arttir = 1;
+   	
+ // 5/2=2.5 saniyede bir ledi ters cevirme isleminin flagini 1 yap
+    	if (systick_count % (SYSTICK_HZ * 5/2) == 0)
+   		flag_ledi_ters_cevir = 1;
+}
+----
+
+== Kesme Uygulaması
+
+[source]
+----
+int main() {
+    init_port_B();
+    init_port_F();
+
+    // 1 saniyede SYSTICK_HZ tane kesme uretecek sekilde ayarlar
+    SysTick_Init(SysCtlClockGet() / SYSTICK_HZ);
+    enable_interrupts();
+
+    while (1) {
+   	 if (flag_sayi_arttir) {
+   		 flag_sayi_arttir = 0;
+   		 sayi = (sayi + 1) % 10;
+   		 GPIO_PORTB_DATA_R = kodlar[sayi];
+   	 }
+   	 if (flag_ledi_ters_cevir) {
+   		 flag_ledi_ters_cevir = 0;
+   		 GPIO_PORTF_DATA_R ^= 0b00100;
+   	 }
+   	 wait_for_interrupt(); // sonraki kesmeye kadar islemciyi uyku moduna alir
+    }
+}
+----
+
+= Buton Kesmesi
+
+Butona basıldığında kesme kullanarak led’i yakıp söndüren uygulama 
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/16.PNG[]
+
+== Tiva/Stellaris Buton & Led Bağlantısı
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/17.PNG[]
+
+== Nested Vector Interrup Controller (NVIC)
+
+extern void PortF_interrupt_handler();
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/18.PNG[]
+
+== Interrupt Service Rutine ISR
+
+[source]
+----
+// The vector table alanı içindeki
+IntDefaultHandler, // GPIO Port F	satırı aşağıdaki gibi değiştirilmeli
+PortF_interrupt_handler, // GPIO Port F
+----
+
+== Kütüphane Tanımlamaları
+
+[source]
+----
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "inc/tm4c123gh6pm.h"
+// stellaris icin: #include "inc/lm4f120h5qr.h"
+
+----
+
+== Kesme Fonksiyonları
+
+[source]
+----
+static inline void disable_interrupts() { //Kesmeleri pasif yap
+   asm("CPSID I");
+}
+
+static inline void enable_interrupts() { // Kesmeleri aktifleştir
+   asm("CPSIE I");
+}
+
+static inline void wait_for_interrupt() { // Kesme olana kadar bekle
+   asm("WFI");
+}
+----
+
+== Port F İlklendirme
+
+[source]
+----
+void init_port_F() {
+volatile unsigned long tmp;						
+SYSCTL_RCGCGPIO_R |= 0x00000020;			// Port F’nin saatini aktifleştir
+tmp = SYSCTL_RCGCGPIO_R;					// Saatin başlaması için gecikme
+GPIO_PORTF_LOCK_R = 0x4C4F434B;			// Port F GPIO kilidini aç
+GPIO_PORTF_CR_R = 0x1F;					// PF4-0 kilidini aç
+GPIO_PORTF_AMSEL_R = 0x00;				// PF anlog I/O kapat
+GPIO_PORTF_PCTL_R = 0x00000000;			// PF4-0 GPIO olarak ayarla
+GPIO_PORTF_DIR_R = 0x0E;					// PF4,PF0 giriş, PF3-1 çıkış
+GPIO_PORTF_AFSEL_R = 0x00;				// PF7-0 Alternatif fonksiyonları kapat
+GPIO_PORTF_PUR_R = 0x11;					// PF0 ve PF4 üzerindeki pull-up direncini 
+         // aktifleştir
+GPIO_PORTF_DEN_R = 0x1F;					// PF4-0 digital I/O aktifleştir
+}
+
+----
+
+== Kesme İlklendirme
+
+[source]
+----
+void PF4_interrupt_init() {
+    
+GPIO_PORTF_IS_R &= ~0b10000; 			//  PC4 is kenar hassas
+GPIO_PORTF_IBE_R &= ~0b10000;			//  PC4 iki kenara hassas değil
+GPIO_PORTF_IEV_R &= ~0b10000;			//  PC4 düşen kenar hassasiyeti
+GPIO_PORTF_ICR_R = 0b10000;  			//  flag4 kesmesini temizle
+GPIO_PORTF_IM_R |= 0b10000;  			//  PC4 kesmesi aktifleştir
+NVIC_PRI7_R = (NVIC_PRI7_R & 0xFF00FFFF) | 0x00A00000; 
+        // NVIC_SYS_PRI3_R kaydında TICK alanını kullanarak SysTick kesmelerinin önceliğini 
+        // oluşturulur
+NVIC_EN0_R |= (1<<30); // NVIC_ST_CTRL_R kontrol saklayıcısına istenen modu yazılır
+
+
+}
+----
+
+== Kesme Esnasında Çalışacak Fonksiyon
+
+[source]
+----
+volatile uint32_t kesme_sayisi = 0;
+
+void PortF_interrupt_handler() {
+    disable_interrupts();
+    GPIO_PORTF_ICR_R = 0b10000; // flag4 kesmesini temizle
+
+    kesme_sayisi++;
+
+    // ledi ters cevir
+    GPIO_PORTF_DATA_R ^= 0b01000;
+
+    enable_interrupts();
+}
+----
+
+== Kesme İşlemi
+
+[source]
+----
+int main() {
+
+    init_port_F();
+    PF4_interrupt_init();
+
+    enable_interrupts();
+
+    while (1) {
+   	 wait_for_interrupt();
+    }
+}
+----
+
+= 7 Parçalı Gösterge
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/19.PNG[]
+
+== Dörtlü 7 Parçalı Gösterge
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/20.PNG[]
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/21.PNG[]
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/22.PNG[]
+
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/23.PNG[]
+
+== Tiva/Stellaris 4’lü 7 Segment Bağlantısı
+image::https://github.com/anilcosar/Sistemprogramlama_9/raw/master/24.PNG[]
+
+== Dörtlü Seven Segment
+
+[source]
+----
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "inc/tm4c123gh6pm.h"
+// stellaris icin: #include "inc/lm4f120h5qr.h"
+
+void init_port_B() {
+	volatile unsigned long delay;
+	SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOB;
+	delay = SYSCTL_RCGC2_R;
+	GPIO_PORTB_DIR_R |= 0xFF;
+	GPIO_PORTB_AFSEL_R &= ~0xFF;
+	GPIO_PORTB_DEN_R |= 0xFF;
+
+}
+
+void init_port_E() {
+	volatile unsigned long delay;
+	SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOE;
+	delay = SYSCTL_RCGC2_R;
+	GPIO_PORTE_DIR_R |= 0x0f;
+	GPIO_PORTE_AFSEL_R &= ~0x0f;
+	GPIO_PORTE_DEN_R |= 0x0f;
+}
+
+// 0'dan 9'a kadar olan sayilarin seven segment kodlari
+// bit sirasi: g f e d c b a
+uint8_t kodlar[10] = {
+	0b0111111,
+	0b0000110,
+	0b1011011,
+	0b1001111,
+	0b1100110,
+	0b1101101,
+	0b1111101,
+	0b0000111,
+	0b1111111,
+	0b1101111
+};
+
+int main() {
+    volatile unsigned long delay;
+
+    init_port_B();
+    init_port_E();
+
+    int sayi = 1234;
+
+    const int BEKLEME_LIMIT = 10000;
+    while (1) {
+        int birler = sayi % 10;
+        GPIO_PORTE_DATA_R |= 0b1111; // hepsini kapat
+        GPIO_PORTB_DATA_R = kodlar[birler];
+        GPIO_PORTE_DATA_R &= ~0b0001; // birler basamagini aktiflestir
+        for (delay = 0 ; delay < BEKLEME_LIMIT ; delay++)
+            /* bekle */;
+
+        int onlar = (sayi / 10) % 10;
+        GPIO_PORTE_DATA_R |= 0b1111; // hepsini kapat
+        GPIO_PORTB_DATA_R = kodlar[onlar];
+        GPIO_PORTE_DATA_R &= ~0b0010; // onlar basamagini aktiflestir
+        for (delay = 0 ; delay < BEKLEME_LIMIT ; delay++)
+            /* bekle */;
+
+        int yuzler = (sayi / 100) % 10;
+        GPIO_PORTE_DATA_R |= 0b1111; // hepsini kapat
+        GPIO_PORTB_DATA_R = kodlar[yuzler];
+        GPIO_PORTE_DATA_R &= ~0b0100; // yuzler basamagini aktiflestir
+        for (delay = 0 ; delay < BEKLEME_LIMIT ; delay++)
+            /* bekle */;
+
+        int binler = (sayi / 1000) % 10;
+        GPIO_PORTE_DATA_R |= 0b1111; // hepsini kapat
+        GPIO_PORTB_DATA_R = kodlar[binler];
+        GPIO_PORTE_DATA_R &= ~0b1000; // binler basamagini aktiflestir
+
+        for (delay = 0 ; delay < BEKLEME_LIMIT ; delay++)
+            /* bekle */;
+    }
+}
+----
+
+
